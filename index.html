@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda Semanal Filipe</title>
+
+<link rel="icon" href="favicon.png" type="image/png">
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    background-color: #111;
+  }
+
+  header {
+    background-color: #111;
+    padding: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    border-bottom: 3px solid #fff;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  header img {
+    height: 30px;
+    position: absolute;
+    left: 15px;
+  }
+
+  .controls {
+    margin: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .controls button {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .controls button:hover {
+    opacity: 0.8;
+  }
+
+  .week {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .day {
+    border: 2px solid #fff;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .day-header {
+    background-color: #222;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .day-header:hover {
+    background-color: #333;
+  }
+
+  .day-header span {
+    color: #fff;
+  }
+
+  .tasks-container {
+    display: none;
+    flex-direction: column;
+  }
+
+  .task {
+    border-top: 1px solid #fff;
+    padding: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .task span {
+    flex: 1;
+    color: #fff;
+  }
+
+  .task button {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: bold;
+    margin-left: 5px;
+  }
+
+  .task button.done {
+    background-color: #555;
+    color: #fff;
+  }
+
+  .task button.delete {
+    background-color: #f00;
+    color: #fff;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 8px;
+    background-color: #000;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 3px;
+  }
+
+  .add-task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0 15px 15px;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    padding: 10px;
+  }
+
+  .add-task-form button {
+    background-color: #fff;
+    color: #000;
+    font-weight: bold;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="favicon.png" alt="ícone">
+  Agenda Semanal Filipe
+</header>
+
+<div class="controls">
+  <button onclick="newWeek()">🗓️ Nova Semana</button>
+  <button onclick="showAddForm()">➕ Adicionar</button>
+</div>
+
+<div id="addForm" class="add-task-form" style="display:none;">
+  <select id="daySelect">
+    <option value="Segunda-feira">Segunda-feira</option>
+    <option value="Terça-feira">Terça-feira</option>
+    <option value="Quarta-feira">Quarta-feira</option>
+    <option value="Quinta-feira">Quinta-feira</option>
+    <option value="Sexta-feira">Sexta-feira</option>
+    <option value="Sábado">Sábado</option>
+    <option value="Domingo">Domingo</option>
+  </select>
+  <input type="text" id="taskText" placeholder="Digite a demanda">
+  <input type="text" id="taskTime" placeholder="Horário (ex: 13:30 - 14:00)">
+  <button onclick="addTask()">✅ Adicionar</button>
+</div>
+
+<div class="week" id="weekContainer"></div>
+
+<script>
+const defaultWeek = {
+  "Segunda-feira": [],
+  "Terça-feira": [],
+  "Quarta-feira": [],
+  "Quinta-feira": [],
+  "Sexta-feira": [],
+  "Sábado": [],
+  "Domingo": []
+};
+
+let weekData = JSON.parse(localStorage.getItem('weekData')) || defaultWeek;
+
+const dayAbbrev = {
+  "Segunda-feira": "Seg",
+  "Terça-feira": "Ter",
+  "Quarta-feira": "Qua",
+  "Quinta-feira": "Qui",
+  "Sexta-feira": "Sex",
+  "Sábado": "Sáb",
+  "Domingo": "Dom"
+};
+
+function saveData() {
+  localStorage.setItem('weekData', JSON.stringify(weekData));
+}
+
+function renderWeek() {
+  const container = document.getElementById('weekContainer');
+  container.innerHTML = '';
+  for (const day in weekData) {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'day';
+
+    const dayHeader = document.createElement('div');
+    dayHeader.className = 'day-header';
+    dayHeader.innerHTML = `<span>${dayAbbrev[day]}</span> <span>▼</span>`;
+    dayHeader.onclick = () => {
+      const tasks = dayDiv.querySelector('.tasks-container');
+      tasks.style.display = tasks.style.display === 'flex' ? 'none' : 'flex';
+    };
+
+    const tasksContainer = document.createElement('div');
+    tasksContainer.className = 'tasks-container';
+    weekData[day].forEach((task, idx) => {
+      const taskDiv = document.createElement('div');
+      taskDiv.className = 'task';
+      taskDiv.innerHTML = `
+        <span>${task.time} - ${task.text}</span>
+        <div style="display:flex; gap:5px;">
+          <button class="${task.done ? 'done' : ''}" onclick="toggleDone('${day}', ${idx}, this)">
+            ${task.done ? '✅ Realizado' : '⏳ Não realizado'}
+          </button>
+          <button class="delete" onclick="deleteTask('${day}', ${idx})">🗑️</button>
+        </div>
+      `;
+      tasksContainer.appendChild(taskDiv);
+    });
+
+    dayDiv.appendChild(dayHeader);
+    dayDiv.appendChild(tasksContainer);
+    container.appendChild(dayDiv);
+  }
+}
+
+function toggleDone(day, idx, btn) {
+  weekData[day][idx].done = !weekData[day][idx].done;
+  btn.classList.toggle('done');
+  btn.textContent = weekData[day][idx].done ? '✅ Realizado' : '⏳ Não realizado';
+  saveData();
+}
+
+function deleteTask(day, idx) {
+  if (confirm("Deseja realmente excluir esta demanda?")) {
+    weekData[day].splice(idx, 1);
+    saveData();
+    renderWeek();
+  }
+}
+
+function newWeek() {
+  if (confirm("Deseja realmente começar uma nova semana? Isso apagará todas as demandas.")) {
+    localStorage.removeItem('weekData');
+    weekData = JSON.parse(JSON.stringify(defaultWeek));
+    saveData();
+    renderWeek();
+    alert("✅ Semana reiniciada com sucesso!");
+  }
+}
+
+function showAddForm() {
+  const form = document.getElementById('addForm');
+  form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function addTask() {
+  const day = document.getElementById('daySelect').value;
+  const text = document.getElementById('taskText').value;
+  const time = document.getElementById('taskTime').value;
+  if (text && time) {
+    weekData[day].push({ text, time, done: false });
+    saveData();
+    renderWeek();
+    document.getElementById('taskText').value = '';
+    document.getElementById('taskTime').value = '';
+  } else {
+    alert('Preencha todos os campos!');
+  }
+}
+
+renderWeek();
+</script>
+
+</body>
+</html>
